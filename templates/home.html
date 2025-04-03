@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accueil</title>
+</head>
+<body>
+    <h1>Bienvenue sur AIChessMate</h1>
+    <p>Vous êtes connecté !</p>
+    <a href="{% url 'logout' %}">Se déconnecter</a>
+</body>
+
+<button id="search-game">Rechercher une partie</button>
+<p id="status">Statut : En attente</p>
+
+<script>
+    const socket = window.socket = new WebSocket('ws://localhost:8000/ws/matchmaking/');
+    
+    if (!window.socket) {
+        window.socket = new WebSocket('ws://localhost:8000/ws/matchmaking/');
+    }
+    
+    socket.onopen = function(event) {
+        console.log("Connexion WebSocket établie");
+    };
+
+    socket.onmessage = function(event) {
+        console.log("Message reçu : ", event.data);
+    };
+
+    socket.onclose = function(event) {
+        console.log("Connexion WebSocket fermée");
+    };
+
+    socket.onopen = function() {
+        console.log("Connexion WebSocket établie");
+    };
+
+    socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+
+        if (data.action === "waiting") {
+            document.getElementById("status").innerText = "En attente d'un adversaire...";
+        } else if (data.action === "match_found") {
+            document.getElementById("status").innerText = `Partie trouvée ! Vous êtes les ${data.role}`;
+            window.location.href = `/game/${data.game_id}/`; // Redirige vers la partie
+        }
+    };
+
+    document.getElementById("search-game").addEventListener("click", function() {
+        socket.send(JSON.stringify({action: "search"}));
+        document.getElementById("status").innerText = "Recherche en cours...";
+    });
+</script>
+
+
+</html>
