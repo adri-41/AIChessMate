@@ -104,7 +104,7 @@ CHANNEL_LAYERS = {
 }
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://aichessmate.onrender.com/',
+    'https://aichessmate.onrender.com',
 ]
 
 # Pour éviter des problèmes de cookie cross-site
