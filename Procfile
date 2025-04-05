@@ -1,1 +1,1 @@
-web: daphne -b 0.0.0.0 -p $PORT AIChessMate.asgi:application
+web: daphne AIChessMate.asgi:application
