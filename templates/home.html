@@ -15,10 +15,16 @@
 <p id="status">Statut : En attente</p>
 
 <script>
-    const socket = window.socket = new WebSocket('ws://localhost:8000/ws/matchmaking/');
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const socketUrl = `${protocol}://${window.location.host}/ws/matchmaking/`;
+    let socket = new WebSocket(socketUrl);
+
     
     if (!window.socket) {
-        window.socket = new WebSocket('ws://localhost:8000/ws/matchmaking/');
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const socketUrl = `${protocol}://${window.location.host}/ws/matchmaking/`;
+        let socket = new WebSocket(socketUrl);
+
     }
     
     socket.onopen = function(event) {
