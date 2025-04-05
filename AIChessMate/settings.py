@@ -7,8 +7,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Sécurité
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret-key")
+print(SECRET_KEY)
 DEBUG = os.environ.get("DEBUG", "True") == "True"
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost").split(",")
+print(ALLOWED_HOSTS)
 
 # Applications
 INSTALLED_APPS = [
@@ -100,3 +102,12 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     },
 }
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://<ton-lien-render>.onrender.com',
+]
+
+# Pour éviter des problèmes de cookie cross-site
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'Lax'
