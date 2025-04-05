@@ -111,3 +111,14 @@ CSRF_TRUSTED_ORIGINS = [
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = 'Lax'
+
+ALLOWED_HOSTS = ['aichessmate.onrender.com']
+
+# Channels settings
+ASGI_APPLICATION = 'AIChessMate.asgi.application'
+
+# Autoriser Render en tant qu’origine
+CSRF_TRUSTED_ORIGINS = ['https://aichessmate.onrender.com']
+
+# Autoriser les hôtes WebSocket
+CORS_ALLOWED_ORIGINS = ['https://aichessmate.onrender.com']

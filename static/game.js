@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", function () {
     const game = new Chess();
-    let socket = new WebSocket("ws://localhost:8000/ws/chess/");
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const socketUrl = `${protocol}://${window.location.host}/ws/chess/`;
+    let socket = new WebSocket(socketUrl);
     let playerColor = null;  // Définira la couleur du joueur (`w` ou `b`)
 
     function sendMessage(data) {
@@ -17,16 +19,20 @@ document.addEventListener("DOMContentLoaded", function () {
         if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) return;
 
         console.log("🔄 Tentative de reconnexion WebSocket...");
-        socket = new WebSocket("ws://localhost:8000/ws/chess/");
+
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const socketUrl = `${protocol}://${window.location.host}/ws/chess/`;
+        socket = new WebSocket(socketUrl);
 
         socket.onopen = () => {
             console.log("✅ Reconnecté au WebSocket !");
-            sendMessage({ type: "join" });  // Demander la couleur au serveur
+            sendMessage({type: "join"});  // Demander la couleur au serveur
         };
         socket.onerror = (error) => console.error("❌ Erreur WebSocket :", error);
         socket.onclose = () => console.warn("⚠️ Connexion WebSocket fermée.");
         socket.onmessage = handleIncomingMessage;
     }
+
 
     function handleIncomingMessage(event) {
         console.log("📩 Message WebSocket brut reçu :", event);
@@ -109,7 +115,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     socket.onopen = () => {
         console.log("✅ Connexion WebSocket établie !");
-        sendMessage({ type: "join" });  // Demander la couleur au serveur
+        sendMessage({type: "join"});  // Demander la couleur au serveur
     };
     socket.onerror = (error) => console.error("❌ Erreur WebSocket :", error);
     socket.onclose = reconnectWebSocket;
