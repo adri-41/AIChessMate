@@ -112,7 +112,7 @@ CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 
-ALLOWED_HOSTS = ['aichessmate.onrender.com']
+ALLOWED_HOSTS = ['aichessmate.onrender.com', 'localhost']
 
 # Channels settings
 ASGI_APPLICATION = 'AIChessMate.asgi.application'

@@ -1,9 +1,9 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const game = new Chess();
+    const game = Chess();
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const socketUrl = `${protocol}://${window.location.host}/ws/chess/`;
     let socket = new WebSocket(socketUrl);
-    let playerColor = null;  // Définira la couleur du joueur (`w` ou `b`)
+    let playerColor = null;
 
     function sendMessage(data) {
         if (socket.readyState === WebSocket.OPEN) {
@@ -26,13 +26,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         socket.onopen = () => {
             console.log("✅ Reconnecté au WebSocket !");
-            sendMessage({type: "join"});  // Demander la couleur au serveur
+            sendMessage({type: "join"});
         };
         socket.onerror = (error) => console.error("❌ Erreur WebSocket :", error);
         socket.onclose = () => console.warn("⚠️ Connexion WebSocket fermée.");
         socket.onmessage = handleIncomingMessage;
     }
-
 
     function handleIncomingMessage(event) {
         console.log("📩 Message WebSocket brut reçu :", event);
@@ -49,7 +48,6 @@ document.addEventListener("DOMContentLoaded", function () {
             if (data.type === "move") {
                 console.log("♟️ Mouvement reçu :", data.source, "->", data.target);
 
-                // Vérifier si c'est bien le tour de l'adversaire
                 if (game.turn() === playerColor) {
                     console.warn("⚠️ Mouvement reçu alors que ce n'est pas mon tour !");
                     return;
@@ -64,12 +62,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (move !== null) {
                     console.log("🖥️ Mise à jour de l'échiquier FEN :", game.fen());
 
-                    // Correction ici : Utilisation de `setPosition`
-                    if (typeof board.setPosition === "function") {
-                        board.position(game.fen());
-                    } else {
-                        console.error("❌ Erreur : board.setPosition n'est pas défini !");
-                    }
+                    // ✅ Utiliser setPosition au lieu de position()
+                    board.setPosition(game.fen());
                 } else {
                     console.warn("⚠️ Mouvement invalide reçu :", data);
                 }
@@ -79,7 +73,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    const board = new window.Chessboard("chessboard", {
+    const board = new Chessboard("chessboard", {
         position: "start",
         draggable: true,
         onDrop: function (source, target) {
@@ -115,7 +109,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     socket.onopen = () => {
         console.log("✅ Connexion WebSocket établie !");
-        sendMessage({type: "join"});  // Demander la couleur au serveur
+        sendMessage({type: "join"});
     };
     socket.onerror = (error) => console.error("❌ Erreur WebSocket :", error);
     socket.onclose = reconnectWebSocket;
