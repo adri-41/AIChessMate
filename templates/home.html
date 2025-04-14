@@ -7,58 +7,73 @@
 </head>
 <body>
     <h1>Bienvenue sur AIChessMate</h1>
-    <p>Vous êtes connecté !</p>
-    <a href="{% url 'logout' %}">Se déconnecter</a>
+    {% if user.is_authenticated %}
+        <p>Connecté en tant que : {{ user.username }}</p>
+        <a href="{% url 'logout' %}">Se déconnecter</a>
+    {% endif %}
+
+    <button id="search-game">Rechercher une partie</button>
+    <p id="status"></p>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+            const socketUrl = `${protocol}://${window.location.host}/ws/matchmaking/`;
+            const socket = new WebSocket(socketUrl);
+
+            const searchBtn = document.getElementById("search-game");
+            const statusText = document.getElementById("status");
+
+            let isSearching = false;
+
+            socket.onopen = () => {
+                console.log("✅ Connexion WebSocket matchmaking établie");
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log("📩 Message reçu :", data);
+
+                if (data.action === "waiting") {
+                    statusText.textContent = "En attente d’un adversaire...";
+                } else if (data.action === "match_found") {
+                    statusText.textContent = `Partie trouvée ! Vous êtes les ${data.role}`;
+                    window.location.href = `/game/${data.game_id}/`;
+                } else if (data.action === "left_queue") {
+                    statusText.textContent = "Recherche annulée.";
+                    searchBtn.textContent = "Rechercher une partie";
+                    isSearching = false;
+                }
+            };
+
+            socket.onclose = () => {
+                console.warn("🔌 WebSocket matchmaking fermé");
+                if (isSearching) {
+                    statusText.textContent = "Connexion perdue.";
+                    searchBtn.textContent = "Rechercher une partie";
+                    isSearching = false;
+                }
+            };
+
+            searchBtn.addEventListener("click", () => {
+                if (socket.readyState !== WebSocket.OPEN) {
+                    console.warn("WebSocket non prêt !");
+                    return;
+                }
+
+                if (!isSearching) {
+                    socket.send(JSON.stringify({ action: "search" }));
+                    statusText.textContent = "Recherche en cours...";
+                    searchBtn.textContent = "Annuler la recherche";
+                    isSearching = true;
+                } else {
+                    socket.send(JSON.stringify({ action: "leave_queue" }));
+                    statusText.textContent = "Annulation en cours...";
+                    searchBtn.textContent = "Rechercher une partie";
+                    isSearching = false;
+                }
+            });
+        });
+    </script>
 </body>
-
-<button id="search-game">Rechercher une partie</button>
-<p id="status">Statut : En attente</p>
-
-<script>
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const socketUrl = `${protocol}://${window.location.host}/ws/matchmaking/`;
-    let socket = new WebSocket(socketUrl);
-
-    
-    if (!window.socket) {
-        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-        const socketUrl = `${protocol}://${window.location.host}/ws/matchmaking/`;
-        let socket = new WebSocket(socketUrl);
-
-    }
-    
-    socket.onopen = function(event) {
-        console.log("Connexion WebSocket établie");
-    };
-
-    socket.onmessage = function(event) {
-        console.log("Message reçu : ", event.data);
-    };
-
-    socket.onclose = function(event) {
-        console.log("Connexion WebSocket fermée");
-    };
-
-    socket.onopen = function() {
-        console.log("Connexion WebSocket établie");
-    };
-
-    socket.onmessage = function(event) {
-        const data = JSON.parse(event.data);
-
-        if (data.action === "waiting") {
-            document.getElementById("status").innerText = "En attente d'un adversaire...";
-        } else if (data.action === "match_found") {
-            document.getElementById("status").innerText = `Partie trouvée ! Vous êtes les ${data.role}`;
-            window.location.href = `/game/${data.game_id}/`; // Redirige vers la partie
-        }
-    };
-
-    document.getElementById("search-game").addEventListener("click", function() {
-        socket.send(JSON.stringify({action: "search"}));
-        document.getElementById("status").innerText = "Recherche en cours...";
-    });
-</script>
-
-
 </html>

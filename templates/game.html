@@ -8,25 +8,25 @@
 
     <!-- Chess.js (logique) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
-
-    <!-- Chessboard.js v1.0.0 -->
-    <!--
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/chessboardjs"></script>
-    -->
-    
     <script src="{% static 'chessboard/chessboard.js' %}"></script>
-    
-    <script src="{% static 'game.js' %}"></script>
-
 </head>
-    <body>
-    
+<body>
+
     <h1>Partie d'Échecs</h1>
+    {% if user.is_authenticated %}
+        <p>Connecté en tant que : {{ user.username }}</p>
+    {% endif %}
+
     <div id="game-container">
         <div id="chessboard" class="chessboard"></div>
     </div>
+
     <p id="status">Status: En attente du premier coup...</p>
-    
-    </body>
+    <p id="endgame-message" style="font-weight: bold; display: none;"></p>
+    <button id="back-home-btn" style="display: none;" onclick="window.location.href='/'">Retour à l’accueil</button>
+
+    <!-- 🧠 Game script à la fin pour s’assurer que tout le DOM est chargé -->
+    <script src="{% static 'game.js' %}"></script>
+
+</body>
 </html>

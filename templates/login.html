@@ -25,5 +25,10 @@
 
     <p>Pas encore de compte ? <a href="{% url 'register' %}">Inscris-toi ici</a></p>
 
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
+
+
 </body>
 </html>

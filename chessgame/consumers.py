@@ -17,17 +17,33 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
 
         if data["action"] == "search":
+            if self in waiting_players:
+                # Évite les doublons si le joueur clique plusieurs fois sur "Rechercher"
+                return
+
             if waiting_players:
-                opponent = waiting_players.pop(0)  # Prendre le premier joueur en attente
+                opponent = waiting_players.pop(0)
                 game_id = f"game_{id(self)}_{id(opponent)}"
 
-                # Informer les deux joueurs qu'ils ont trouvé une partie
-                await self.send(text_data=json.dumps({"action": "match_found", "game_id": game_id, "role": "white"}))
-                await opponent.send(
-                    text_data=json.dumps({"action": "match_found", "game_id": game_id, "role": "black"}))
+                # Informer les deux joueurs qu'ils ont trouvés une partie
+                await self.send(text_data=json.dumps({
+                    "action": "match_found",
+                    "game_id": game_id,
+                    "role": "white"
+                }))
+                await opponent.send(text_data=json.dumps({
+                    "action": "match_found",
+                    "game_id": game_id,
+                    "role": "black"
+                }))
             else:
-                waiting_players.append(self)  # Ajouter le joueur à la file d'attente
+                waiting_players.append(self)
                 await self.send(text_data=json.dumps({"action": "waiting"}))
+
+        elif data["action"] == "leave_queue":
+            if self in waiting_players:
+                waiting_players.remove(self)
+                await self.send(text_data=json.dumps({"action": "left_queue"}))
 
 
 class ChessConsumer(AsyncWebsocketConsumer):
