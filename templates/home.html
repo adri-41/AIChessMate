@@ -13,6 +13,7 @@
     {% endif %}
 
     <button id="search-game">Rechercher une partie</button>
+    <button id="play-ai">Jouer contre l'IA (facile)</button>
     <p id="status"></p>
 
     <script>
@@ -73,6 +74,11 @@
                     isSearching = false;
                 }
             });
+        });
+        
+        // 🎯 Redirection vers une partie contre l'IA
+        document.getElementById("play-ai").addEventListener("click", function () {
+            window.location.href = "/game/vs-bot/";
         });
     </script>
 </body>

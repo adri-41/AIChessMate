@@ -24,9 +24,13 @@
     <p id="status">Status: En attente du premier coup...</p>
     <p id="endgame-message" style="font-weight: bold; display: none;"></p>
     <button id="back-home-btn" style="display: none;" onclick="window.location.href='/'">Retour à l’accueil</button>
+    
+    {% if mode == "ai" %}
+        <script src="{% static 'game_vs_ai.js' %}"></script>
+    {% else %}
+        <script src="{% static 'game_multiplayer.js' %}"></script>
+    {% endif %}
 
-    <!-- 🧠 Game script à la fin pour s’assurer que tout le DOM est chargé -->
-    <script src="{% static 'game.js' %}"></script>
 
 </body>
 </html>

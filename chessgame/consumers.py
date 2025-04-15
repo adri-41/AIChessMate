@@ -1,6 +1,9 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 
+from .ai import get_random_move
+import chess
+
 waiting_players = []  # Liste des joueurs en attente
 
 
@@ -100,3 +103,33 @@ class ChessConsumer(AsyncWebsocketConsumer):
             "source": event["source"],
             "target": event["target"]
         }))
+
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+
+        if data["type"] == "move":
+            # Envoyer le mouvement au groupe
+            await self.channel_layer.group_send(
+                "chess_game",
+                {
+                    "type": "broadcast_move",
+                    "source": data["source"],
+                    "target": data["target"]
+                }
+            )
+
+            # ➕ Si partie contre l'IA, générer un coup après celui du joueur
+            if "vs_bot" in self.scope["path"]:  # ou un autre moyen d'identifier
+                # Créer une position avec chess.py
+                game_fen = data.get("fen")
+                if game_fen:
+                    move = get_random_move(game_fen)
+                    if move:
+                        await self.channel_layer.group_send(
+                            "chess_game",
+                            {
+                                "type": "broadcast_move",
+                                "source": move.uci()[:2],
+                                "target": move.uci()[2:]
+                            }
+                        )

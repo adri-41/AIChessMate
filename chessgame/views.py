@@ -2,7 +2,6 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
-from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.forms import UserCreationForm
 
 
@@ -46,5 +45,10 @@ def register_view(request):
 # return render(request, "game.html", {"game_id": game_id})
 
 @login_required
-def game(request, room_name):  # Vérifie que room_name est bien un paramètre ici
-    return render(request, "game.html", {"room_name": room_name})
+def game_view(request, room_name=None):
+    # On détecte le mode : contre IA ou multijoueur
+    mode = "ai" if room_name == "vs-bot" else "multi"
+    return render(request, "game.html", {
+        "mode": mode,
+        "room_name": room_name,
+    })

@@ -10,7 +10,8 @@ class Chessboard {
 
         this.position = config.position || 'start';
         this.draggable = config.draggable || false;
-        this.onDrop = config.onDrop || function () {};
+        this.onDrop = config.onDrop || function () {
+        };
         this.pieces = {
             'r': 'bR.png', 'n': 'bN.png', 'b': 'bB.png', 'q': 'bQ.png', 'k': 'bK.png', 'p': 'bP.png',
             'R': 'wR.png', 'N': 'wN.png', 'B': 'wB.png', 'Q': 'wQ.png', 'K': 'wK.png', 'P': 'wP.png'
@@ -97,6 +98,7 @@ class Chessboard {
         let draggedPiece = null;
         let startSquare = null;
 
+        // 🖱 Drag & Drop - PC
         this.element.addEventListener("dragstart", (event) => {
             if (event.target.classList.contains("piece")) {
                 draggedPiece = event.target;
@@ -111,29 +113,69 @@ class Chessboard {
 
         this.element.addEventListener("drop", (event) => {
             event.preventDefault();
-            if (!draggedPiece) return;
+            if (!draggedPiece || !startSquare) return;
 
-            let targetSquare = event.target;
-            if (targetSquare.classList.contains("piece")) {
-                targetSquare = targetSquare.parentElement;
-            }
+            let targetSquare = event.target.closest(".square");
 
-            if (targetSquare.classList.contains("square")) {
+            if (targetSquare && this.element.contains(targetSquare)) {
                 const from = this.getSquareNotation(startSquare.dataset.row, startSquare.dataset.col);
                 const to = this.getSquareNotation(targetSquare.dataset.row, targetSquare.dataset.col);
+
                 const moveIsValid = this.onDrop(from, to);
 
                 if (moveIsValid) {
-                    targetSquare.innerHTML = '';
-                    targetSquare.appendChild(draggedPiece);
+                    // ✅ Réafficher la position correcte après mouvement
+                    this.setPosition(game.fen());
                 }
             }
 
-            draggedPiece.style.display = "block";
+            // 🔄 Réinitialisation
+            if (draggedPiece) draggedPiece.style.display = "block";
             draggedPiece = null;
             startSquare = null;
         });
+
+        // 📱 Touch support - Mobile
+        let touchStartSquare = null;
+
+        this.element.addEventListener("touchstart", (event) => {
+            const touch = event.touches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (target && target.classList.contains("piece")) {
+                touchStartSquare = target.parentElement;
+                event.preventDefault();
+            }
+        }, {passive: false});
+
+        this.element.addEventListener("touchend", (event) => {
+            if (!touchStartSquare) return;
+
+            const touch = event.changedTouches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetSquare = target?.closest(".square");
+
+            if (targetSquare && this.element.contains(targetSquare)) {
+                const from = this.getSquareNotation(
+                    touchStartSquare.dataset.row,
+                    touchStartSquare.dataset.col
+                );
+                const to = this.getSquareNotation(
+                    targetSquare.dataset.row,
+                    targetSquare.dataset.col
+                );
+
+                const moveIsValid = this.onDrop(from, to);
+
+                if (moveIsValid) {
+                    // ✅ Forcer la synchro visuelle après déplacement
+                    this.setPosition(game.fen());
+                }
+            }
+
+            touchStartSquare = null;
+        }, {passive: false});
     }
+
 
     getInitialPiece(row, col) {
         const startPosition = [
