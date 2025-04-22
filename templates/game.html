@@ -10,26 +10,28 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
     <script src="{% static 'chessboard/chessboard.js' %}"></script>
 </head>
+
+
 <body>
 
-    <h1>Partie d'Échecs</h1>
-    {% if user.is_authenticated %}
-        <p>Connecté en tant que : {{ user.username }}</p>
-    {% endif %}
+<h1>Partie d'Échecs</h1>
+{% if user.is_authenticated %}
+    <p>Connecté en tant que : {{ user.username }}</p>
+{% endif %}
 
-    <div id="game-container">
-        <div id="chessboard" class="chessboard"></div>
-    </div>
+<div id="game-container">
+    <div id="chessboard" class="chessboard"></div>
+</div>
 
-    <p id="status">Status: En attente du premier coup...</p>
-    <p id="endgame-message" style="font-weight: bold; display: none;"></p>
-    <button id="back-home-btn" style="display: none;" onclick="window.location.href='/'">Retour à l’accueil</button>
-    
-    {% if mode == "ai" %}
-        <script src="{% static 'game_vs_ai.js' %}"></script>
-    {% else %}
-        <script src="{% static 'game_multiplayer.js' %}"></script>
-    {% endif %}
+<p id="status">Status: En attente du premier coup...</p>
+<p id="endgame-message" style="font-weight: bold; display: none;"></p>
+<button id="back-home-btn" style="display: none;" onclick="window.location.href='/'">Retour à l’accueil</button>
+
+{% if mode == "ai" %}
+    <script src="{% static 'game_vs_ai.js' %}"></script>
+{% else %}
+    <script src="{% static 'game_multiplayer.js' %}"></script>
+{% endif %}
 
 
 </body>
