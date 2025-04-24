@@ -14,6 +14,9 @@ piece_values = {
 # Cases du centre : important à contrôler
 central_squares = [chess.D4, chess.E4, chess.D5, chess.E5]
 
+# Compteur pour le nombre d'évaluations
+evaluation_count = 0
+
 
 def evaluate_board(board: chess.Board):
     """
@@ -23,6 +26,9 @@ def evaluate_board(board: chess.Board):
     - Roi sécurisé
     - Pièces vulnérables (non défendues ou attaquées)
     """
+    global evaluation_count  # Permet de modifier la variable globale
+    evaluation_count += 1
+    print(evaluation_count)
     score = 0
 
     for square in chess.SQUARES:
@@ -53,7 +59,6 @@ def evaluate_board(board: chess.Board):
                 score -= 0.1 * multiplier  # pièce échangée
             elif attackers and not attacked_by_enemy:
                 score += 0.2 * multiplier  # pièce bien protégée
-    print(score)
     return score
 
 
@@ -62,6 +67,7 @@ def minimax(board: chess.Board, depth, maximizing):
     Algorithme Minimax simple :
     - sans élagage alpha-beta (plus lent mais plus simple à lire)
     """
+
     if depth == 0 or board.is_game_over():
         return evaluate_board(board), None
 
@@ -94,15 +100,22 @@ def minimax(board: chess.Board, depth, maximizing):
         return min_eval, best_move
 
 
-def get_minimax_move(fen, depth=5):
+def get_minimax_move(fen, depth=3):
     """
     Point d'entrée appelé depuis le backend Django.
     """
+    global evaluation_count  # Réinitialise le compteur à chaque appel
+    evaluation_count = 0
     board = chess.Board(fen)
     _, move = minimax(board, depth, board.turn)
+    print(f"Nombre d'évaluations du plateau: {evaluation_count}")  # Affichage du compteur
     if move:
         return {
             "from": move.uci()[:2],
             "to": move.uci()[2:4]
         }
     return None
+
+# 3 -> 13160
+# 4 -> 197 281 -> après e4 -> 405 385
+# 5 -> 4 865 617

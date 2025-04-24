@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
                 makeRandomAIMove();
             }
-        }, 500);
+        }, 500);//ici
 
         document.getElementById("chessboard").style.transform = "rotate(180deg)";
         document.querySelectorAll(".square").forEach(sq => sq.style.transform = "rotate(180deg)");
@@ -223,7 +223,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 } else {
                     makeRandomAIMove();
                 }
-            }, 500);
+            }, 500);//ici
         }
         return true;
     }

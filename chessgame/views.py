@@ -94,7 +94,7 @@ def minimax_ai_move(request):
         if not fen:
             return JsonResponse({"error": "FEN manquant"}, status=400)
 
-        move = get_minimax_move(fen, depth=2)
+        move = get_minimax_move(fen)
         if move:
             return JsonResponse(move)
         return JsonResponse({"error": "Aucun coup possible"}, status=200)
