@@ -11,30 +11,32 @@
         <p>Connecté en tant que : {{ user.username }}</p>
         <a href="{% url 'logout' %}">Se déconnecter</a>
     {% endif %}
-
+    
     <button id="search-game">Rechercher une partie</button>
-    <button id="play-ai">Jouer contre l'IA (facile)</button>
+    <button id="play-random">Jouer contre l'IA (facile)</button>
+    <button id="play-minimax">Jouer contre minimax (normal)</button>
+    
     <p id="status"></p>
-
+    
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const protocol = window.location.protocol === "https:" ? "wss" : "ws";
             const socketUrl = `${protocol}://${window.location.host}/ws/matchmaking/`;
             const socket = new WebSocket(socketUrl);
-
+    
             const searchBtn = document.getElementById("search-game");
             const statusText = document.getElementById("status");
-
+    
             let isSearching = false;
-
+    
             socket.onopen = () => {
                 console.log("✅ Connexion WebSocket matchmaking établie");
             };
-
+    
             socket.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 console.log("📩 Message reçu :", data);
-
+    
                 if (data.action === "waiting") {
                     statusText.textContent = "En attente d’un adversaire...";
                 } else if (data.action === "match_found") {
@@ -46,7 +48,7 @@
                     isSearching = false;
                 }
             };
-
+    
             socket.onclose = () => {
                 console.warn("🔌 WebSocket matchmaking fermé");
                 if (isSearching) {
@@ -55,31 +57,37 @@
                     isSearching = false;
                 }
             };
-
+    
             searchBtn.addEventListener("click", () => {
                 if (socket.readyState !== WebSocket.OPEN) {
                     console.warn("WebSocket non prêt !");
                     return;
                 }
-
+    
                 if (!isSearching) {
-                    socket.send(JSON.stringify({ action: "search" }));
+                    socket.send(JSON.stringify({action: "search"}));
                     statusText.textContent = "Recherche en cours...";
                     searchBtn.textContent = "Annuler la recherche";
                     isSearching = true;
                 } else {
-                    socket.send(JSON.stringify({ action: "leave_queue" }));
+                    socket.send(JSON.stringify({action: "leave_queue"}));
                     statusText.textContent = "Annulation en cours...";
                     searchBtn.textContent = "Rechercher une partie";
                     isSearching = false;
                 }
             });
         });
-        
-        // 🎯 Redirection vers une partie contre l'IA
-        document.getElementById("play-ai").addEventListener("click", function () {
-            window.location.href = "/game/vs-bot/";
+    
+        // 🎯 Redirection vers une partie contre l'IA random
+        document.getElementById("play-random").addEventListener("click", function () {
+            window.location.href = "/game/vs-bot/?mode=random";
         });
+        
+        // 🎯 Redirection vers une partie contre l'IA minimax
+        document.getElementById("play-minimax").addEventListener("click", function () {
+            window.location.href = "/game/vs-bot/?mode=minimax";
+        });
+
     </script>
 </body>
 </html>

@@ -1,8 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-from .ai import get_random_move
-import chess
+from chessgame.ai.ai_random import get_random_move
 
 waiting_players = []  # Liste des joueurs en attente
 
@@ -16,7 +15,7 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         if self in waiting_players:
             waiting_players.remove(self)
 
-    async def receive(self, text_data):
+    async def receive(self, text_data, **kwargs):
         data = json.loads(text_data)
 
         if data["action"] == "search":
@@ -50,18 +49,16 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
 
 
 class ChessConsumer(AsyncWebsocketConsumer):
-    players = {}  # Stocke les joueurs et leurs couleurs
+    players = {}
 
     async def connect(self):
         await self.accept()
 
-        # Assigner une couleur au joueur
         if len(self.players) % 2 == 0:
             self.players[self.channel_name] = "w"
         else:
             self.players[self.channel_name] = "b"
 
-        # Ajouter le joueur au groupe de la partie
         await self.channel_layer.group_add("chess_game", self.channel_name)
 
         await self.send(text_data=json.dumps({
@@ -74,53 +71,29 @@ class ChessConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         if self.channel_name in self.players:
             del self.players[self.channel_name]
-
-        # Retirer le joueur du groupe de la partie
         await self.channel_layer.group_discard("chess_game", self.channel_name)
-
         print("❌ Joueur déconnecté")
 
     async def receive(self, text_data):
         data = json.loads(text_data)
 
         if data["type"] == "move":
-            print(f"📡 Diffusion mouvement : {data['source']} -> {data['target']}")
+            source = data["source"]
+            target = data["target"]
 
-            # Diffuser le mouvement à tous les joueurs du groupe
+            print(f"📡 Diffusion mouvement : {source} -> {target}")
+
             await self.channel_layer.group_send(
                 "chess_game",
                 {
                     "type": "broadcast_move",
-                    "source": data["source"],
-                    "target": data["target"]
+                    "source": source,
+                    "target": target
                 }
             )
 
-    async def broadcast_move(self, event):
-        """ Envoie le mouvement à tous les joueurs sauf celui qui l'a envoyé """
-        await self.send(text_data=json.dumps({
-            "type": "move",
-            "source": event["source"],
-            "target": event["target"]
-        }))
-
-    async def receive(self, text_data):
-        data = json.loads(text_data)
-
-        if data["type"] == "move":
-            # Envoyer le mouvement au groupe
-            await self.channel_layer.group_send(
-                "chess_game",
-                {
-                    "type": "broadcast_move",
-                    "source": data["source"],
-                    "target": data["target"]
-                }
-            )
-
-            # ➕ Si partie contre l'IA, générer un coup après celui du joueur
-            if "vs_bot" in self.scope["path"]:  # ou un autre moyen d'identifier
-                # Créer une position avec chess.py
+            # Partie contre une IA
+            if "vs-bot" in self.scope["path"]:
                 game_fen = data.get("fen")
                 if game_fen:
                     move = get_random_move(game_fen)
@@ -133,3 +106,10 @@ class ChessConsumer(AsyncWebsocketConsumer):
                                 "target": move.uci()[2:]
                             }
                         )
+
+    async def broadcast_move(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "move",
+            "source": event["source"],
+            "target": event["target"]
+        }))

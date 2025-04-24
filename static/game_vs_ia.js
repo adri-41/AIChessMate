@@ -1,6 +1,9 @@
 document.addEventListener("DOMContentLoaded", function () {
     window.game = Chess();
-    const playerColor = "w";
+
+    const aiMode = document.getElementById("chessboard").dataset.aiMode || "random";
+
+    const playerColor = Math.random() < 0.5 ? "w" : "b";
     const statusElement = document.getElementById("status");
     const endgameMessage = document.getElementById("endgame-message");
     const backHomeBtn = document.getElementById("back-home-btn");
@@ -20,10 +23,27 @@ document.addEventListener("DOMContentLoaded", function () {
         onDrop: onDropAI
     });
 
+    if (playerColor === "b") {
+        setTimeout(() => {
+            if (aiMode === "minimax") {
+                makeMinimaxMove();
+            } else {
+                makeRandomAIMove();
+            }
+        }, 500);
+
+        document.getElementById("chessboard").style.transform = "rotate(180deg)";
+        document.querySelectorAll(".square").forEach(sq => sq.style.transform = "rotate(180deg)");
+    }
+
+
     if (backHomeBtn) {
         backHomeBtn.addEventListener("click", () => window.location.href = "/");
     }
 
+    /**
+     * Injecte dynamiquement les styles CSS (ronds, overlay promotion, etc.)
+     */
     function injectStyles() {
         const style = document.createElement("style");
         style.textContent = `
@@ -84,57 +104,74 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 500);
     }
 
+    /**
+     * Gère le clic sur une case : sélection de pièce ou déplacement
+     */
     function handleSquareClick(sq) {
-        const pieceImg = sq.querySelector(".piece");
         const squareName = getSquareNotation(sq.dataset.row, sq.dataset.col);
         console.log("🟦 Case cliquée :", squareName);
 
-        // Si on a déjà une case sélectionnée et qu'on clique sur une destination légale
+        // 🟢 Si une case est déjà sélectionnée et le clic est une destination valide
         if (selectedSquare && legalTargetSquares.includes(squareName)) {
-            console.log("➡️ Déplacement de", selectedSquare, "vers", squareName);
-            makePlayerMove(selectedSquare, squareName, "q");
+            console.log("➡️ Tentative de déplacement de", selectedSquare, "vers", squareName);
+
+            // Obtenir tous les coups légaux de la case sélectionnée
+            const possibleMoves = game.moves({square: selectedSquare, verbose: true});
+            const promotionMove = possibleMoves.find(m =>
+                m.from === selectedSquare && m.to === squareName && m.promotion
+            );
+
+            if (promotionMove) {
+                console.log("♕ Promotion détectée !");
+                pendingPromotion = {from: selectedSquare, to: squareName};
+                showPromotionDialog(selectedSquare, squareName);
+            } else {
+                makePlayerMove(selectedSquare, squareName, "q");
+            }
+
             return;
         }
 
-        // Si la case est vide
+        // ❌ Si on clique sur une case vide
+        const pieceImg = sq.querySelector(".piece");
         if (!pieceImg) {
-            console.log("❌ Case vide, aucune pièce à sélectionner.");
+            console.log("📭 Case vide cliquée, on annule la sélection");
             clearHighlights();
             return;
         }
 
-        // Analyse du chemin de l'image pour détecter la couleur
-        const src = pieceImg.src;
-        const filename = src.split("/").pop(); // Ex: "wP.png"
-        const colorCode = filename[0]; // "w" ou "b"
-        console.log("🔍 Image détectée :", filename, "| Couleur :", colorCode);
+        // 🔍 Identifier la couleur
+        const filename = pieceImg.src.split("/").pop();
+        const colorCode = filename[0];
 
-        if (colorCode === "w" && game.turn() === "w") {
-            console.log("✅ Pièce blanche sélectionnée sur", squareName);
+        if (colorCode === playerColor && game.turn() === playerColor) {
+            console.log("🎯 Pièce sélectionnée :", squareName);
             showLegalMoves(squareName);
         } else {
-            console.log("❌ Clic ignoré : pas une pièce blanche ou pas notre tour.");
+            console.log("🚫 Mauvaise pièce ou pas ton tour.");
             clearHighlights();
         }
     }
 
 
+    /**
+     * Affiche les coups légaux sous forme de ronds
+     */
     function showLegalMoves(square) {
         clearHighlights();
         selectedSquare = square;
         const moves = game.moves({square, verbose: true});
         legalTargetSquares = moves.map(m => m.to);
 
-        console.log("✅ Coups légaux depuis", square, ":", legalTargetSquares);
-
         legalTargetSquares.forEach(to => {
             const squareEl = getSquareElement(to);
-            if (squareEl) {
-                squareEl.classList.add("legal-move");
-            }
+            if (squareEl) squareEl.classList.add("legal-move");
         });
     }
 
+    /**
+     * Supprime les ronds et la sélection
+     */
     function clearHighlights() {
         document.querySelectorAll(".square.legal-move").forEach(sq => {
             sq.classList.remove("legal-move");
@@ -143,35 +180,14 @@ document.addEventListener("DOMContentLoaded", function () {
         legalTargetSquares = [];
     }
 
-    function getSquareNotation(row, col) {
-        const files = "abcdefgh";
-        return files[col] + (8 - row);
-    }
-
-    function updateStatus() {
-        if (game.game_over()) {
-            let message = "Partie terminée.";
-            if (game.in_draw()) message = "🤝 Match nul !";
-            else if (game.in_checkmate()) {
-                const winner = game.turn() === "w" ? "noirs" : "blancs";
-                message = winner === "blancs" ? "🎉 Victoire !" : "😞 Défaite...";
-            }
-
-            statusElement.textContent = "Partie terminée.";
-            endgameMessage.textContent = message;
-            endgameMessage.style.display = "block";
-            backHomeBtn.style.display = "inline-block";
-        } else {
-            statusElement.textContent = game.turn() === playerColor
-                ? "À votre tour de jouer !" : "L’IA réfléchit...";
-        }
-    }
-
+    /**
+     * Appelé quand une pièce est déplacée avec la souris
+     */
     function onDropAI(source, target) {
         if (game.turn() !== playerColor) return false;
+
         const moves = game.moves({verbose: true});
         const isPromotion = moves.some(m => m.from === source && m.to === target && m.promotion);
-
         if (isPromotion) {
             pendingPromotion = {from: source, to: target};
             showPromotionDialog(source, target);
@@ -181,14 +197,19 @@ document.addEventListener("DOMContentLoaded", function () {
         return makePlayerMove(source, target, "q");
     }
 
+    /**
+     * Joue un coup du joueur, met à jour l'affichage, puis appelle l'IA
+     */
     function makePlayerMove(from, to, promotion) {
-        console.log("🎯 Tentative de déplacement de", from, "vers", to);
-        const move = game.move({from, to, promotion});
-        if (!move) {
-            console.log("❌ Mouvement invalide");
+        // Si on attend une promotion, ne pas faire de mouvement tant qu’elle n’est pas sélectionnée
+        if (pendingPromotion && (from !== pendingPromotion.from || to !== pendingPromotion.to)) {
             return false;
         }
 
+        const move = game.move({from, to, promotion});
+        if (!move) return false;
+
+        pendingPromotion = null;  // 🧹 On réinitialise le statut de promotion
         board.setPosition(game.fen());
         highlightLastMove(from, to);
         highlightKingInCheck();
@@ -196,30 +217,86 @@ document.addEventListener("DOMContentLoaded", function () {
         clearHighlights();
 
         if (!game.game_over()) {
-            setTimeout(makeRandomAIMove, 500);
+            setTimeout(() => {
+                if (aiMode === "minimax") {
+                    makeMinimaxMove();
+                } else {
+                    makeRandomAIMove();
+                }
+            }, 500);
         }
         return true;
     }
 
-    function makeRandomAIMove() {
-        if (game.game_over()) return;
-        const moves = game.moves({verbose: true});
-        const move = moves[Math.floor(Math.random() * moves.length)];
 
-        game.move(move);
-        board.setPosition(game.fen());
-        highlightLastMove(move.from, move.to);
-        highlightKingInCheck();
-        updateStatus();
+    /**
+     * Appelle le backend Python pour générer un coup aléatoire
+     */
+    async function makeRandomAIMove() {
+        if (game.game_over()) return;
+
+        try {
+            const response = await fetch("/api/random-ai-move/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCSRFToken()
+                },
+                body: JSON.stringify({fen: game.fen()})
+            });
+
+            const data = await response.json();
+            if (data.from && data.to) {
+                game.move({from: data.from, to: data.to, promotion: "q"});
+                board.setPosition(game.fen());
+                highlightLastMove(data.from, data.to);
+                highlightKingInCheck();
+                updateStatus();
+            }
+        } catch (error) {
+            console.error("Erreur IA Python :", error);
+        }
     }
 
+    /**
+     * Appelle le backend Python pour que l'ia joue
+     */
+    async function makeMinimaxMove() {
+        if (game.game_over()) return;
+
+        try {
+            const response = await fetch("/api/minimax-ai-move/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCSRFToken()
+                },
+                body: JSON.stringify({fen: game.fen()})
+            });
+
+            const data = await response.json();
+            if (data.from && data.to) {
+                game.move({from: data.from, to: data.to, promotion: "q"});
+                board.setPosition(game.fen());
+                highlightLastMove(data.from, data.to);
+                highlightKingInCheck();
+                updateStatus();
+            }
+        } catch (err) {
+            console.error("Erreur IA Minimax :", err);
+        }
+    }
+
+    /**
+     * Affiche un menu pour choisir la pièce en cas de promotion
+     */
     function showPromotionDialog(from, to) {
         const overlay = document.createElement("div");
         overlay.classList.add("promotion-overlay");
 
         ["q", "r", "b", "n"].forEach(type => {
             const img = document.createElement("img");
-            img.src = `/static/chessboard/img/w${type.toUpperCase()}.png`;
+            img.src = `/static/chessboard/img/${playerColor}${type.toUpperCase()}.png`;
             img.alt = type;
             img.onclick = () => {
                 makePlayerMove(from, to, type);
@@ -232,13 +309,38 @@ document.addEventListener("DOMContentLoaded", function () {
         document.body.appendChild(overlay);
     }
 
+    /**
+     * Met à jour le texte de statut (victoire, tour, échec, etc.)
+     */
+    function updateStatus() {
+        if (game.game_over()) {
+            let message = "Partie terminée.";
+            if (game.in_draw()) {
+                message = "🤝 Match nul !";
+            } else if (game.in_checkmate()) {
+                const loser = game.turn();
+                const winner = loser === "w" ? "b" : "w";
+                message = (winner === playerColor) ? "🎉 Victoire !" : "😞 Défaite...";
+            }
+
+            statusElement.textContent = "Partie terminée.";
+            endgameMessage.textContent = message;
+            endgameMessage.style.display = "block";
+            backHomeBtn.style.display = "inline-block";
+        } else {
+            statusElement.textContent = game.turn() === playerColor
+                ? "À votre tour de jouer !" : "L’IA réfléchit...";
+        }
+    }
+
+    /**
+     * Surligne les deux dernières cases du dernier coup
+     */
     function highlightLastMove(from, to) {
-        if (lastFromSquare && lastFromSquare.dataset.originalColor) {
+        if (lastFromSquare && lastFromSquare.dataset.originalColor)
             lastFromSquare.style.background = lastFromSquare.dataset.originalColor;
-        }
-        if (lastToSquare && lastToSquare.dataset.originalColor) {
+        if (lastToSquare && lastToSquare.dataset.originalColor)
             lastToSquare.style.background = lastToSquare.dataset.originalColor;
-        }
 
         lastFromSquare = getSquareElement(from);
         lastToSquare = getSquareElement(to);
@@ -249,6 +351,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    /**
+     * Surligne la case du roi si en échec
+     */
     function highlightKingInCheck() {
         if (kingInCheckSquare && kingInCheckSquare.dataset.originalColor) {
             kingInCheckSquare.style.background = kingInCheckSquare.dataset.originalColor;
@@ -259,13 +364,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const kingSquare = findKingSquare(game.turn());
         const square = getSquareElement(kingSquare);
-
         if (square) {
             kingInCheckSquare = square;
             square.style.background = "radial-gradient(ellipse at center, rgb(255, 0, 0) 0%, rgb(231, 0, 0) 25%, rgba(169, 0, 0, 0) 89%, rgba(158, 0, 0, 0) 100%)";
         }
     }
 
+    /**
+     * Trouve la case du roi pour la couleur donnée
+     */
     function findKingSquare(color) {
         const fen = game.fen().split(" ")[0];
         const rows = fen.split("/");
@@ -285,12 +392,36 @@ document.addEventListener("DOMContentLoaded", function () {
         return null;
     }
 
+    /**
+     * Renvoie l’élément DOM d’une case à partir du nom (ex: "e4")
+     */
     function getSquareElement(square) {
         const file = square[0];
         const rank = parseInt(square[1]);
         const col = file.charCodeAt(0) - 'a'.charCodeAt(0);
         const row = 8 - rank;
         return document.querySelector(`.square[data-row="${row}"][data-col="${col}"]`);
+    }
+
+    /**
+     * Convertit ligne + colonne vers notation e4
+     */
+    function getSquareNotation(row, col) {
+        const files = "abcdefgh";
+        return files[col] + (8 - row);
+    }
+
+    /**
+     * Récupère le token CSRF depuis les cookies (nécessaire pour Django)
+     */
+    function getCSRFToken() {
+        const name = "csrftoken";
+        const cookies = document.cookie.split(';');
+        for (let c of cookies) {
+            const [key, value] = c.trim().split('=');
+            if (key === name) return decodeURIComponent(value);
+        }
+        return null;
     }
 
     updateStatus();

@@ -1,4 +1,5 @@
 {% load static %}
+{% csrf_token %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -11,7 +12,6 @@
     <script src="{% static 'chessboard/chessboard.js' %}"></script>
 </head>
 
-
 <body>
 
 <h1>Partie d'Échecs</h1>
@@ -20,19 +20,20 @@
 {% endif %}
 
 <div id="game-container">
-    <div id="chessboard" class="chessboard"></div>
+    <div id="chessboard" class="chessboard" data-ai-mode="{{ mode }}"></div>
 </div>
 
-<p id="status">Status: En attente du premier coup...</p>
+<p id="status">Status : En attente du premier coup...</p>
 <p id="endgame-message" style="font-weight: bold; display: none;"></p>
 <button id="back-home-btn" style="display: none;" onclick="window.location.href='/'">Retour à l’accueil</button>
 
-{% if mode == "ai" %}
-    <script src="{% static 'game_vs_ai.js' %}"></script>
+{% if mode == "random" %}
+    <script src="{% static 'game_vs_ia.js' %}"></script>
+{% elif mode == "minimax" %}
+    <script src="{% static 'game_vs_ia.js' %}"></script>
 {% else %}
     <script src="{% static 'game_multiplayer.js' %}"></script>
 {% endif %}
-
 
 </body>
 </html>
