@@ -15,6 +15,7 @@
     <button id="search-game">Rechercher une partie</button>
     <button id="play-random">Jouer contre l'IA (facile)</button>
     <button id="play-minimax">Jouer contre minimax (normal)</button>
+    <button id="play-nn">Jouer contre réseaux de neurone (difficile)</button>
     
     <p id="status"></p>
     
@@ -86,6 +87,11 @@
         // 🎯 Redirection vers une partie contre l'IA minimax
         document.getElementById("play-minimax").addEventListener("click", function () {
             window.location.href = "/game/vs-bot/?mode=minimax";
+        });
+        
+        // 🎯 Redirection vers une partie contre l'IA minimax
+        document.getElementById("play-nn").addEventListener("click", function () {
+            window.location.href = "/game/vs-bot/?mode=nn";
         });
 
     </script>

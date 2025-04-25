@@ -12,6 +12,8 @@ from chessgame.ai.ai_random import *
 
 from chessgame.ai.ai_minimax import *
 
+from chessgame.ai.ai_nn import *
+
 
 def login_view(request):
     if request.method == 'POST':
@@ -99,3 +101,15 @@ def minimax_ai_move(request):
             return JsonResponse(move)
         return JsonResponse({"error": "Aucun coup possible"}, status=200)
     return JsonResponse({"error": "Méthode non autorisée"}, status=405)
+
+
+@csrf_exempt
+def nn_ai_move(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        fen = data.get("fen")
+        if not fen:
+            return JsonResponse({"error": "FEN manquant"}, status=400)
+
+        move = get_nn_ai_move(fen)
+        return JsonResponse(move or {})

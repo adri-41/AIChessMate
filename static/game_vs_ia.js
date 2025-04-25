@@ -98,7 +98,14 @@ document.addEventListener("DOMContentLoaded", function () {
         setTimeout(() => {
             document.querySelectorAll(".square").forEach(sq => {
                 sq.dataset.originalColor = window.getComputedStyle(sq).backgroundColor;
-                sq.addEventListener("click", () => handleSquareClick(sq));
+                const handleClick = () => handleSquareClick(sq);
+
+                // Gère les clics de souris
+                sq.addEventListener("click", handleClick);
+
+                // Gère les appuis tactiles
+                sq.addEventListener("touchstart", handleClick);
+
             });
             console.log("✅ Écouteurs de clic ajoutés aux cases.");
         }, 500);
@@ -220,7 +227,11 @@ document.addEventListener("DOMContentLoaded", function () {
             setTimeout(() => {
                 if (aiMode === "minimax") {
                     makeMinimaxMove();
-                } else {
+                }
+                if (aiMode === "nn") {
+                    makeNeuralAIMove();
+                }
+                if (aiMode === "random") {
                     makeRandomAIMove();
                 }
             }, 500);//ici
@@ -286,6 +297,27 @@ document.addEventListener("DOMContentLoaded", function () {
             console.error("Erreur IA Minimax :", err);
         }
     }
+
+    async function makeNeuralAIMove() {
+        const response = await fetch("/api/nn-ai-move/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCSRFToken()
+            },
+            body: JSON.stringify({fen: game.fen()})
+        });
+
+        const data = await response.json();
+        if (data.from && data.to) {
+            game.move({from: data.from, to: data.to, promotion: "q"});
+            board.setPosition(game.fen());
+            highlightLastMove(data.from, data.to);
+            highlightKingInCheck();
+            updateStatus();
+        }
+    }
+
 
     /**
      * Affiche un menu pour choisir la pièce en cas de promotion
