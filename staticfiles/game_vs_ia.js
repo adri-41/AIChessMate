@@ -27,6 +27,8 @@ document.addEventListener("DOMContentLoaded", function () {
         setTimeout(() => {
             if (aiMode === "minimax") {
                 makeMinimaxMove();
+            } else if (aiMode === "nn") {
+                makeNeuralAIMove();
             } else {
                 makeRandomAIMove();
             }
@@ -45,6 +47,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * Injecte dynamiquement les styles CSS (ronds, overlay promotion, etc.)
      */
     function injectStyles() {
+        console.log("injectStyles")
         const style = document.createElement("style");
         style.textContent = `
             .promotion-overlay {
@@ -98,9 +101,15 @@ document.addEventListener("DOMContentLoaded", function () {
         setTimeout(() => {
             document.querySelectorAll(".square").forEach(sq => {
                 sq.dataset.originalColor = window.getComputedStyle(sq).backgroundColor;
-                sq.addEventListener("click", () => handleSquareClick(sq));
+                const handleClick = () => handleSquareClick(sq);
+
+                // Gère les clics de souris
+                sq.addEventListener("click", handleClick);
+
+                // Gère les appuis tactiles
+                sq.addEventListener("touchstart", handleClick);
+
             });
-            console.log("✅ Écouteurs de clic ajoutés aux cases.");
         }, 500);
     }
 
@@ -108,12 +117,11 @@ document.addEventListener("DOMContentLoaded", function () {
      * Gère le clic sur une case : sélection de pièce ou déplacement
      */
     function handleSquareClick(sq) {
+        console.log("handleSquareClick")
         const squareName = getSquareNotation(sq.dataset.row, sq.dataset.col);
-        console.log("🟦 Case cliquée :", squareName);
 
         // 🟢 Si une case est déjà sélectionnée et le clic est une destination valide
         if (selectedSquare && legalTargetSquares.includes(squareName)) {
-            console.log("➡️ Tentative de déplacement de", selectedSquare, "vers", squareName);
 
             // Obtenir tous les coups légaux de la case sélectionnée
             const possibleMoves = game.moves({square: selectedSquare, verbose: true});
@@ -122,7 +130,6 @@ document.addEventListener("DOMContentLoaded", function () {
             );
 
             if (promotionMove) {
-                console.log("♕ Promotion détectée !");
                 pendingPromotion = {from: selectedSquare, to: squareName};
                 showPromotionDialog(selectedSquare, squareName);
             } else {
@@ -135,7 +142,6 @@ document.addEventListener("DOMContentLoaded", function () {
         // ❌ Si on clique sur une case vide
         const pieceImg = sq.querySelector(".piece");
         if (!pieceImg) {
-            console.log("📭 Case vide cliquée, on annule la sélection");
             clearHighlights();
             return;
         }
@@ -145,10 +151,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const colorCode = filename[0];
 
         if (colorCode === playerColor && game.turn() === playerColor) {
-            console.log("🎯 Pièce sélectionnée :", squareName);
             showLegalMoves(squareName);
         } else {
-            console.log("🚫 Mauvaise pièce ou pas ton tour.");
             clearHighlights();
         }
     }
@@ -158,6 +162,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * Affiche les coups légaux sous forme de ronds
      */
     function showLegalMoves(square) {
+        console.log("showLegalMoves")
         clearHighlights();
         selectedSquare = square;
         const moves = game.moves({square, verbose: true});
@@ -173,6 +178,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * Supprime les ronds et la sélection
      */
     function clearHighlights() {
+        console.log("clearHighlights")
         document.querySelectorAll(".square.legal-move").forEach(sq => {
             sq.classList.remove("legal-move");
         });
@@ -184,6 +190,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * Appelé quand une pièce est déplacée avec la souris
      */
     function onDropAI(source, target) {
+        console.log("onDropAI")
         if (game.turn() !== playerColor) return false;
 
         const moves = game.moves({verbose: true});
@@ -201,6 +208,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * Joue un coup du joueur, met à jour l'affichage, puis appelle l'IA
      */
     function makePlayerMove(from, to, promotion) {
+        console.log("makePlayerMove")
         // Si on attend une promotion, ne pas faire de mouvement tant qu’elle n’est pas sélectionnée
         if (pendingPromotion && (from !== pendingPromotion.from || to !== pendingPromotion.to)) {
             return false;
@@ -214,14 +222,22 @@ document.addEventListener("DOMContentLoaded", function () {
         highlightLastMove(from, to);
         highlightKingInCheck();
         updateStatus();
+        updateMoveHistory(game.move);
+        console.log(game.move)
         clearHighlights();
 
         if (!game.game_over()) {
             setTimeout(() => {
-                if (aiMode === "minimax") {
-                    makeMinimaxMove();
-                } else {
-                    makeRandomAIMove();
+                switch (aiMode) {
+                    case "minimax":
+                        makeMinimaxMove();
+                        break;
+                    case "nn":
+                        makeNeuralAIMove();
+                        break;
+                    case "random":
+                    default:
+                        makeRandomAIMove();
                 }
             }, 500);
         }
@@ -233,6 +249,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * Appelle le backend Python pour générer un coup aléatoire
      */
     async function makeRandomAIMove() {
+        console.log("makeRandomAIMove")
         if (game.game_over()) return;
 
         try {
@@ -252,6 +269,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 highlightLastMove(data.from, data.to);
                 highlightKingInCheck();
                 updateStatus();
+                updateMoveHistory(game.move);
+                console.log(game.move)
             }
         } catch (error) {
             console.error("Erreur IA Python :", error);
@@ -262,6 +281,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * Appelle le backend Python pour que l'ia joue
      */
     async function makeMinimaxMove() {
+        console.log("makeMinimaxMove")
         if (game.game_over()) return;
 
         try {
@@ -281,16 +301,49 @@ document.addEventListener("DOMContentLoaded", function () {
                 highlightLastMove(data.from, data.to);
                 highlightKingInCheck();
                 updateStatus();
+                updateMoveHistory(game.move)
+                console.log(game.move)
             }
         } catch (err) {
             console.error("Erreur IA Minimax :", err);
         }
     }
 
+    async function makeNeuralAIMove() {
+        console.log("makeNeuralAIMove")
+        if (game.game_over()) return;
+
+        try {
+            const response = await fetch("/api/nn-ai-move/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCSRFToken()
+                },
+                body: JSON.stringify({fen: game.fen()})
+            });
+
+            const data = await response.json();
+            if (data.from && data.to) {
+                game.move({from: data.from, to: data.to, promotion: "q"});
+                board.setPosition(game.fen());
+                highlightLastMove(data.from, data.to);
+                highlightKingInCheck();
+                updateStatus();
+                updateMoveHistory(data);
+                console.log(data)
+            }
+        } catch (error) {
+            console.error("Erreur IA NN :", error);
+        }
+    }
+
+
     /**
      * Affiche un menu pour choisir la pièce en cas de promotion
      */
     function showPromotionDialog(from, to) {
+        console.log("showPromotionDialog")
         const overlay = document.createElement("div");
         overlay.classList.add("promotion-overlay");
 
@@ -313,6 +366,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * Met à jour le texte de statut (victoire, tour, échec, etc.)
      */
     function updateStatus() {
+        console.log("updateStatus")
         if (game.game_over()) {
             let message = "Partie terminée.";
             if (game.in_draw()) {
@@ -337,6 +391,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * Surligne les deux dernières cases du dernier coup
      */
     function highlightLastMove(from, to) {
+        console.log("highlightLastMove")
         if (lastFromSquare && lastFromSquare.dataset.originalColor)
             lastFromSquare.style.background = lastFromSquare.dataset.originalColor;
         if (lastToSquare && lastToSquare.dataset.originalColor)
@@ -355,6 +410,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * Surligne la case du roi si en échec
      */
     function highlightKingInCheck() {
+        console.log("highlightKingInCheck")
         if (kingInCheckSquare && kingInCheckSquare.dataset.originalColor) {
             kingInCheckSquare.style.background = kingInCheckSquare.dataset.originalColor;
             kingInCheckSquare = null;
@@ -374,6 +430,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * Trouve la case du roi pour la couleur donnée
      */
     function findKingSquare(color) {
+        console.log("findKingSquare")
         const fen = game.fen().split(" ")[0];
         const rows = fen.split("/");
         for (let i = 0; i < 8; i++) {
@@ -396,6 +453,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * Renvoie l’élément DOM d’une case à partir du nom (ex: "e4")
      */
     function getSquareElement(square) {
+        console.log("getSquareElement")
         const file = square[0];
         const rank = parseInt(square[1]);
         const col = file.charCodeAt(0) - 'a'.charCodeAt(0);
@@ -407,6 +465,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * Convertit ligne + colonne vers notation e4
      */
     function getSquareNotation(row, col) {
+        console.log("getSquareNotation")
         const files = "abcdefgh";
         return files[col] + (8 - row);
     }
@@ -415,6 +474,7 @@ document.addEventListener("DOMContentLoaded", function () {
      * Récupère le token CSRF depuis les cookies (nécessaire pour Django)
      */
     function getCSRFToken() {
+        console.log("getCSRFToken")
         const name = "csrftoken";
         const cookies = document.cookie.split(';');
         for (let c of cookies) {
@@ -423,6 +483,22 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         return null;
     }
+
+    function updateMoveHistory(game) {
+        console.log("updateMoveHistory")
+        const historyElement = document.getElementById("move-history");
+        historyElement.innerHTML = "";
+
+        const moves = game.history();
+        for (let i = 0; i < moves.length; i += 2) {
+            const whiteMove = moves[i] || "";
+            const blackMove = moves[i + 1] || "";
+            const li = document.createElement("li");
+            li.textContent = `${i / 2 + 1}. ${whiteMove} ${blackMove}`;
+            historyElement.appendChild(li);
+        }
+    }
+
 
     updateStatus();
     console.log("🤖 Partie contre IA initialisée :", board);

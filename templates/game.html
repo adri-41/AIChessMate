@@ -19,8 +19,18 @@
     <p>Connecté en tant que : {{ user.username }}</p>
 {% endif %}
 
-<div id="game-container">
-    <div id="chessboard" class="chessboard" data-ai-mode="{{ mode }}"></div>
+<!-- Conteneur principal : échiquier + historique -->
+<div style="display: flex; gap: 30px;">
+    <!-- Échiquier -->
+    <div id="game-container">
+        <div id="chessboard" class="chessboard" data-ai-mode="{{ mode }}"></div>
+    </div>
+
+    <!-- Historique des coups -->
+    <div id="move-history-container" style="width: 150px; padding: 10px;">
+        <h4>Historique</h4>
+        <ul id="move-history"></ul>
+    </div>
 </div>
 
 <p id="status">Status : En attente du premier coup...</p>
